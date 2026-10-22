@@ -1,9 +1,13 @@
 """Check the Parquet against the Shapefiles in the zips as served, not against the GeoJSON it came from.
 
-For every prefecture: same number of routes, same operator text (the .dbf, read as the .cpg says),
+For every prefecture: same number of routes, same operator text (the .dbf, read as cp932: the .cpg says SJIS, but some names use NEC/IBM extension characters that only cp932 decodes),
 every vertex within 1e-9 degrees of the .shp, the .prj names JGD2011, the GeoParquet crs is an object.
 Also: the national file is the four prefecture files in code order, every geometry is a valid
 LineString and ids are unique.
+
+The one difference allowed between the .dbf and the GeoJSON of the zip: cp932 decodes the wave
+dash byte (0x8160) as U+FF5E (fullwidth tilde) where the source's own GeoJSON has U+301C; the
+Parquet follows the GeoJSON; nothing else may differ.
 
     uv run python scripts/03_verify.py
 """
@@ -20,6 +24,7 @@ import shapefile
 from shapely import from_wkb
 
 ROOT = Path(__file__).parents[1]
+WAVE = str.maketrans({"\uff5e": "\u301c"})
 
 
 def main() -> int:
@@ -39,7 +44,7 @@ def main() -> int:
             sf = shapefile.Reader(
                 shp=io.BytesIO(z.read(base + ".shp")), shx=io.BytesIO(z.read(base + ".shx")),
                 dbf=io.BytesIO(z.read(base + ".dbf")),
-                encoding=z.read(base + ".cpg").decode().strip())  # fmt: skip
+                encoding="cp932")  # fmt: skip
             prj = z.read(base + ".prj").decode()
         assert "JGD_2011" in prj or "JGD2011" in prj, prj[:80]
         d = t.to_pydict()
@@ -48,7 +53,7 @@ def main() -> int:
         for i, (sr, op, wkb) in enumerate(
             zip(sf.iterShapeRecords(), d["operator"], d["geometry"], strict=True)
         ):
-            assert sr.record[0] == op, (code, i, sr.record[0], op)
+            assert sr.record[0].translate(WAVE) == op, (code, i, sr.record[0], op)
             g = from_wkb(wkb)
             assert g.geom_type == "LineString" and g.is_valid, (code, i)
             pts = sr.shape.points

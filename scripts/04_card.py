@@ -92,10 +92,10 @@ sister dataset `ksj-p11-bus-stop-greater-tokyo`.
   The attribute that tells which is not in the 2022 edition of this layer; the stop layer has it.
 - A line is one polyline of an operator, not one route (系統): {top_operator} has {top_n:,} lines in
   these files. Do not count lines as routes.
-- {dup_n} lines repeat the operator and the vertices of another line in the same prefecture; they
-  are kept so that the count stays {rows:,}.
-- The national government states a limit of position: the data were checked against the GSI
-  background maps at zoom levels 15 to 17, so lines are drawn to about that scale, not surveyed.
+- {dup_n} line(s) repeat the operator and the vertices of another line in the same prefecture;
+  kept, so that the count stays {rows:,}.
+- The quality notes of the page say the positions were checked on screen against the GSI
+  background maps at zoom levels 15 to 17: the lines are drawn to that scale, not surveyed.
 - The 2011 edition (第1.0版, 平成23年度) of the same layer is marked 非商用 and is not included.
 
 ## Licence
@@ -138,7 +138,7 @@ def main() -> int:
     card = CARD.format(
         repo=REPO, rows=cols["rows"], page=k.PAGE_URL, terms=k.TERMS_URL, run=run.name,
         fetched=run.name, lm=" / ".join(lms), count_rows=count_rows, top_operator=top_operator,
-        top_n=top_n, dup_n=f"{dup_n:,}", pref_files=", ".join(f"`{c}` {k.PREFS[c]}" for c in k.PREFS),
+        top_n=top_n, dup_n=dup_n, pref_files=", ".join(f"`{c}` {k.PREFS[c]}" for c in k.PREFS),
         files_list=", ".join(f"`{n}`" for n in manifest["files"]),
     )  # fmt: skip
     data = ROOT / "data"
